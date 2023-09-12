@@ -1,0 +1,130 @@
+---
+title: "Scraping cards"
+listing:
+  id: suburbs
+  contents: 
+---
+
+For this demo, we've set up what looks like a state government dashboard, with some statistics for each suburb in Melbourne (that I made up). Each "card" has a number of relevant pieces of information.
+
+How would we go about extracting the info from these cards into Google Sheets? If it was a `<table>`, we could use the `importhtml()` function to get the whole thing in one go.
+
+We can't do that this time—it isn't a table. But we can use Google Sheets' more general `importxml()` function to gets lists of things, and we can tell it exactly what we want.
+
+:::{.callout-note}
+I've cheated and created this listing from a spreadsheet myself—but it mimics the sorts of listings you'll see on product listings and dashboards all over the internet.
+
+```{r}
+#| label: download-census-data
+#| code-fold: true
+library(tidyverse)
+library(readxl)
+library(yaml)
+library(here)
+
+zip_path <- here("scraping-cards", "vic-stats.zip")
+zip_url <- paste0(
+  "https://www.abs.gov.au/",
+  "census/find-census-data/datapacks/download/",
+  "2021_GCP_SAL_for_VIC_short-header.zip")
+download.file(zip_url, zip_path)
+unzip(zip_path, exdir = here("scraping-cards", "data"))
+file.rename(
+  here("scraping-cards", "data", "2021 Census GCP Suburbs and Localities for VIC"),
+  here("scraping-cards", "data", "Responses"))
+```
+
+```{r}
+#| label: select-cols
+#| code-fold: true
+
+here("scraping-cards", "data", "") |>
+  read_csv() |>
+  write_yaml(here("scraping-cards", "suburbs.yml"))
+
+# G01,Tot_P_P
+# G02,Median_rent_weekly
+# G02,Median_tot_fam_inc_weekly
+# G18:
+#   P_Tot_Need_for_assistance
+#   P_Tot_No_need_for_assistance
+#   P_Tot_Need_for_assistance_ns
+# G62:
+#   One_method_Bus_P,
+#   One_method_Bus_P,
+#   One_met_Tram_or_lt_rail_P,
+#   One_met_Taxi_or_Rideshare_P,
+#   One_method_Car_as_driver_P,
+#   One_method_Car_as_passenger_P,
+#   One_method_Truck_P,
+#   One_method_Motorbike_scootr_P,
+#   One_method_Bicycle_P,
+#   One_method_Other_P,
+#   One_method_Walked_only_P,
+#   Two_methods_Train_Bus_P,
+#   Two_methods_Train_Ferry_P
+#   Two_mt_trn_Trm_or_lt_rail_M
+#   Two_mt_trn_Trm_or_lt_rail_F
+#   Two_mt_trn_Trm_or_lt_rail_P
+#   Two_methods_Trn_Car_as_drvr_M
+#   Two_methods_Trn_Car_as_drvr_F
+#   Two_methods_Trn_Car_as_drvr_P
+#   Two_methods_Trn_Car_as_pass_M
+#   Two_methods_Trn_Car_as_pass_F
+#   Two_methods_Trn_Car_as_pass_P
+#   Two_methods_Train_Other_M
+#   Two_methods_Train_Other_F
+#   Two_methods_Train_Other_P
+#   Two_methods_Train_Tot_M
+#   Two_methods_Train_Tot_F
+#   Two_methods_Train_Tot_P
+#   Two_methods_Bus_Ferry_M
+#   Two_methods_Bus_Ferry_F
+#   Two_methods_Bus_Ferry_P
+#   Two_mth_Bu_Trm_or_lt_rail_M
+#   Two_mth_Bu_Trm_or_lt_rail_F
+#   Two_mth_Bu_Trm_or_lt_rail_P
+#   Two_methods_Bus_Car_as_drvr_M
+#   Two_methods_Bus_Car_as_drvr_F
+#   Two_methods_Bus_Car_as_drvr_P
+#   Two_methods_Bus_Car_as_pass_M
+#   Two_methods_Bus_Car_as_pass_F
+#   Two_methods_Bus_Car_as_pass_P
+#   Two_methods_Bus_Other_M
+#   Two_methods_Bus_Other_F
+#   Two_methods_Bus_Other_P
+#   Two_methods_Bus_Tot_M
+#   Two_methods_Bus_Tot_F
+#   Two_methods_Bus_Tot_P
+#   Two_methds_Othr_two_methds_M
+#   Two_methds_Othr_two_methds_F
+#   Two_methds_Othr_two_methds_P
+#   Two_methods_Tot_two_methods_M
+#   Two_methods_Tot_two_methods_F
+#   Two_methods_Tot_two_methods_P
+#   Three_meth_Tr_2_oth_meth_M
+#   Three_meth_Tr_2_oth_meth_F
+#   Three_meth_Tr_2_oth_meth_P
+#   Three_met_Bs_2_ot_met_ex_tr_M
+#   Three_met_Bs_2_ot_met_ex_tr_F
+#   Three_met_Bs_2_ot_met_ex_tr_P
+#   Three_meth_Othr_three_meth_M
+#   Three_meth_Othr_three_meth_F
+#   Three_meth_Othr_three_meth_P
+#   Three_meth_Tot_three_meth_M
+#   Three_meth_Tot_three_meth_F
+#   Three_meth_Tot_three_meth_P
+#   Worked_home_M
+#   Worked_home_F
+#   Worked_home_P
+#   Did_not_go_to_work_M
+#   Did_not_go_to_work_F
+#   Did_not_go_to_work_P
+#   Method_travel_to_work_ns_M
+#   Method_travel_to_work_ns_F
+#   Method_travel_to_work_ns_P
+```
+:::
+
+:::{#suburbs}
+:::
