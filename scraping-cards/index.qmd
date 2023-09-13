@@ -1,8 +1,11 @@
 ---
 title: "Scraping cards"
+resources: suburbs.yml
 listing:
   id: suburbs
-  contents: 
+  contents: ["suburbs.yml"]
+  sort: ["name"]
+  type: grid
 ---
 
 For this demo, we've set up what looks like a state government dashboard, with some statistics for each suburb in Melbourne (that I made up). Each "card" has a number of relevant pieces of information.
@@ -38,91 +41,84 @@ file.rename(
 #| label: select-cols
 #| code-fold: true
 
-here("scraping-cards", "data", "") |>
-  read_csv() |>
-  write_yaml(here("scraping-cards", "suburbs.yml"))
+# suburb codes and names
+here("scraping-cards", "data", "Metadata",
+  "2021Census_geog_desc_1st_2nd_3rd_release.xlsx") |>
+  read_excel(sheet = "2021_ASGS_Non_ABS_Structures") |>
+  filter(ASGS_Structure == "SAL") |>
+  select(Code = Census_Code_2021, Name = Census_Name_2021) ->
+suburb_map
 
-# G01,Tot_P_P
-# G02,Median_rent_weekly
-# G02,Median_tot_fam_inc_weekly
-# G18:
-#   P_Tot_Need_for_assistance
-#   P_Tot_No_need_for_assistance
-#   P_Tot_Need_for_assistance_ns
-# G62:
-#   One_method_Bus_P,
-#   One_method_Bus_P,
-#   One_met_Tram_or_lt_rail_P,
-#   One_met_Taxi_or_Rideshare_P,
-#   One_method_Car_as_driver_P,
-#   One_method_Car_as_passenger_P,
-#   One_method_Truck_P,
-#   One_method_Motorbike_scootr_P,
-#   One_method_Bicycle_P,
-#   One_method_Other_P,
-#   One_method_Walked_only_P,
-#   Two_methods_Train_Bus_P,
-#   Two_methods_Train_Ferry_P
-#   Two_mt_trn_Trm_or_lt_rail_M
-#   Two_mt_trn_Trm_or_lt_rail_F
-#   Two_mt_trn_Trm_or_lt_rail_P
-#   Two_methods_Trn_Car_as_drvr_M
-#   Two_methods_Trn_Car_as_drvr_F
-#   Two_methods_Trn_Car_as_drvr_P
-#   Two_methods_Trn_Car_as_pass_M
-#   Two_methods_Trn_Car_as_pass_F
-#   Two_methods_Trn_Car_as_pass_P
-#   Two_methods_Train_Other_M
-#   Two_methods_Train_Other_F
-#   Two_methods_Train_Other_P
-#   Two_methods_Train_Tot_M
-#   Two_methods_Train_Tot_F
-#   Two_methods_Train_Tot_P
-#   Two_methods_Bus_Ferry_M
-#   Two_methods_Bus_Ferry_F
-#   Two_methods_Bus_Ferry_P
-#   Two_mth_Bu_Trm_or_lt_rail_M
-#   Two_mth_Bu_Trm_or_lt_rail_F
-#   Two_mth_Bu_Trm_or_lt_rail_P
-#   Two_methods_Bus_Car_as_drvr_M
-#   Two_methods_Bus_Car_as_drvr_F
-#   Two_methods_Bus_Car_as_drvr_P
-#   Two_methods_Bus_Car_as_pass_M
-#   Two_methods_Bus_Car_as_pass_F
-#   Two_methods_Bus_Car_as_pass_P
-#   Two_methods_Bus_Other_M
-#   Two_methods_Bus_Other_F
-#   Two_methods_Bus_Other_P
-#   Two_methods_Bus_Tot_M
-#   Two_methods_Bus_Tot_F
-#   Two_methods_Bus_Tot_P
-#   Two_methds_Othr_two_methds_M
-#   Two_methds_Othr_two_methds_F
-#   Two_methds_Othr_two_methds_P
-#   Two_methods_Tot_two_methods_M
-#   Two_methods_Tot_two_methods_F
-#   Two_methods_Tot_two_methods_P
-#   Three_meth_Tr_2_oth_meth_M
-#   Three_meth_Tr_2_oth_meth_F
-#   Three_meth_Tr_2_oth_meth_P
-#   Three_met_Bs_2_ot_met_ex_tr_M
-#   Three_met_Bs_2_ot_met_ex_tr_F
-#   Three_met_Bs_2_ot_met_ex_tr_P
-#   Three_meth_Othr_three_meth_M
-#   Three_meth_Othr_three_meth_F
-#   Three_meth_Othr_three_meth_P
-#   Three_meth_Tot_three_meth_M
-#   Three_meth_Tot_three_meth_F
-#   Three_meth_Tot_three_meth_P
-#   Worked_home_M
-#   Worked_home_F
-#   Worked_home_P
-#   Did_not_go_to_work_M
-#   Did_not_go_to_work_F
-#   Did_not_go_to_work_P
-#   Method_travel_to_work_ns_M
-#   Method_travel_to_work_ns_F
-#   Method_travel_to_work_ns_P
+# total population
+here("scraping-cards", "data", "Responses", "2021Census_G01_VIC_SAL.csv") |>
+  read_csv(col_select = c(SAL_CODE_2021, Tot_P_P)) |>
+  mutate(`Total population` = as.integer(Tot_P_P)) |>
+  select(SAL_CODE_2021, `Total population`) ->
+population
+
+# income and rent
+here("scraping-cards", "data", "Responses", "2021Census_G02_VIC_SAL.csv") |>
+  read_csv(col_select =
+    c(SAL_CODE_2021, Median_rent_weekly, Median_tot_fam_inc_weekly)) |>
+  rename(
+    `Median weekly rent` = Median_rent_weekly,
+    `Median weekly family income` = Median_tot_fam_inc_weekly) ->
+income_and_rent
+
+# commuting:
+# we just want the most popular commute method for each area,
+# which i'll encode as emoji
+here("scraping-cards", "data", "Responses", "2021Census_G62_VIC_SAL.csv") |>
+  read_csv(
+    col_types = cols(SAL_CODE_2021 = col_character(), .default = col_integer()),
+    col_select = c(SAL_CODE_2021, ends_with("_P"))) |>
+  select(SAL_CODE_2021, matches("One_method"), matches("Two_methods"),
+    matches("Three_meth"), -matches("Tot")) |>
+  pivot_longer(-SAL_CODE_2021, names_to = "method", values_to = "count") |>
+  filter(count > 0) |>
+  group_by(SAL_CODE_2021) |>
+  slice_max(count, n = 1) |>
+  ungroup() |>
+  mutate("Most popular commute method" = str_replace_all(method, c(
+    "Train" = "🚂",
+    "Trn" = "🚂",
+    "Bus" = "🚌",
+    "Ferry" = "⛴️",
+    "Car_as_driver" = "🚗 D",
+    "Car_as_drvr" = "🚗 D",
+    "Car_as_passenger" = "🚗 P",
+    "Car_as_pass" = "🚗 P",
+    "Truck" = "🚚",
+    "Motorbike_scootr" = "🛵",
+    "Other" = "❓",
+    "Walked_only" = "🚶🏻",
+    "_P" = "",
+    "Tr_2_oth_meth" = "🚂 + 2",
+    "Othr_three_meth" = "❓ + 2",
+    "One_method" = "",
+    "Two_methods" = "",
+    "Three_meth" = "",
+    "_" = " "))) |>
+  select(-method, -count) ->
+commuting_mostpopular
+```
+
+```{r}
+#| label: join-datasets
+#| code-fold: true
+
+# join and write out to yaml (so we can make a listing)
+population |>
+  left_join(income_and_rent, join_by(SAL_CODE_2021)) |>
+  left_join(income_and_rent, join_by(SAL_CODE_2021)) |>
+  left_join(commuting_mostpopular, join_by(SAL_CODE_2021)) |>
+  left_join(suburb_map, join_by(SAL_CODE_2021 == Code)) |>
+  select(Name, Code = SAL_CODE_2021, everything()) |>
+  mutate(`Total population` = as.integer(`Total population`)) |>
+  filter(`Total population` > 0) ->
+joined
+
+write_yaml(joined, here("scraping-cards", "suburbs.yml"), column.major = FALSE)
 ```
 :::
 

@@ -1,19 +1,20 @@
 project:
   type: website
 
+execute:
+  freeze: auto
+
 website:
-  title: "."
+  title: "Training"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - about.qmd
+      - href: scraping-cards
+        text: Scraping cards
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
-
-
-
