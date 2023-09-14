@@ -1,1 +1,1 @@
-# training-datajournalism-scraping
+# training-datajournalism
