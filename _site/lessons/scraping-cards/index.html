@@ -345,32 +345,31 @@ Solution
 <p>For example, to extract the title from each of the cards below, we would write the following:</p>
 <pre><code>=importxml(
   "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
-  "div[@class="card"]/h5")
+  "//h5")
 </code></pre>
-<p>The first part is the URL of this page; the second tells the scraper to look for fifth-level headings (<code>h5</code>) inside <code>div</code> elements with the class <code>card</code>. In other words, the heading from each card.</p>
+<p>The first part is the URL of this page; the second tells the scraper to look for fifth-level headings (<code>h5</code>). In other words, the heading from each card. (We’d want to make sure there weren’t any other fifth-level headings on the page, or else we’d want to be more specific!)</p>
+<p>To get the income, we would use:</p>
+<pre><code>=importxml(
+  "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
+  "//td[@class="Median weekly rent"]")</code></pre>
+<p>This is pretty similar, but instead of looking for headings inside cards, we’re looking for table cells (<code>td</code>) that have the class <code>Median weekly rent</code>. That’s because each card on this page has a little table inside it.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Wait, what’s a <code>div</code>? And a <code>class</code>?
+Wait, what’s a <code>class</code>?
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>A <code>div</code> is a generic building block of a web page, used to group bits of content together. On this page, each card below is a <code>div</code>.</p>
 <p>Elements on web pages can have a unique <code>id</code>, as well as one or more <code>class</code>es to help describe them. The cards on this page have the class <code>card</code>, and the pieces of information on each card have a class named for the data (its ‘column’, if this were a spreadsheet).</p>
 <p>Every web page is arranged differently!</p>
 </div>
 </div>
 </div>
-<p>To get the income, we would use:</p>
-<pre><code>=importxml(
-  "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
-  "div[@class="card"]/td[@class="Median weekly rent"]")</code></pre>
-<p>This is pretty similar, but instead of looking for headings inside cards, we’re looking for table cells (<code>td</code>) that have the class <code>Median weekly rent</code> inside <code>div</code> elements that have the class <code>card</code>. That’s because each card on this page has a little table inside it.</p>
 <p>Learning how to write XPath can take time, and it involves learning about web pages are strcutured. But this demo shows you the power you have with common tools to extract data–even from places where the authors haven’t made it easy to access!</p>
 <p>If you’d like to learn more, here are some resources:</p>
 <ul>

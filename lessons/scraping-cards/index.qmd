@@ -156,33 +156,31 @@ For example, to extract the title from each of the cards below, we would write t
 ```
 =importxml(
   "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
-  "div[@class="card"]/h5")
+  "//h5")
 
 ```
 
-The first part is the URL of this page; the second tells the scraper to look for fifth-level headings (`h5`) inside `div` elements with the class `card`. In other words, the heading from each card.
-
-:::{.callout-note collapse="true"}
-## Wait, what's a `div`? And a `class`?
-
-A `div` is a generic building block of a web page, used to group bits of content together. On this page, each card below is a `div`.
-
-Elements on web pages can have a unique `id`, as well as one or more `class`es to help describe them. The cards on this page have the class `card`, and the pieces of information on each card have a class named for the data (its 'column', if this were a spreadsheet).
-
-Every web page is arranged differently!
-:::
+The first part is the URL of this page; the second tells the scraper to look for fifth-level headings (`h5`). In other words, the heading from each card. (We'd want to make sure there weren't any other fifth-level headings on the page, or else we'd want to be more specific!)
 
 To get the income, we would use:
 
 ```
 =importxml(
   "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
-  "div[@class="card"]/td[@class="Median weekly rent"]")
+  "//td[@class="Median weekly rent"]")
 ```
 
-This is pretty similar, but instead of looking for headings inside cards, we're looking for table cells (`td`) that have the class `Median weekly rent` inside `div` elements that have the class `card`. That's because each card on this page has a little table inside it.
+This is pretty similar, but instead of looking for headings inside cards, we're looking for table cells (`td`) that have the class `Median weekly rent`. That's because each card on this page has a little table inside it.
 
-Learning how to write XPath can take time, and it involves learning about web pages are strcutured. But this demo shows you the power you have with common tools to extract data–even from places where the authors haven't made it easy to access!
+:::{.callout-note collapse="true"}
+## Wait, what's a `class`?
+
+Elements on web pages can have a unique `id`, as well as one or more `class`es to help describe them. The cards on this page have the class `card`, and the pieces of information on each card have a class named for the data (its 'column', if this were a spreadsheet).
+
+Every web page is arranged differently!
+:::
+
+Learning how to write XPath can take time, and it involves learning about web pages are structured. But this demo shows you the power you have with common tools to extract data–even from places where the authors haven't made it easy to access!
 
 If you'd like to learn more, here are some resources:
 
