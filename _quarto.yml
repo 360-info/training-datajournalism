@@ -5,16 +5,20 @@ execute:
   freeze: auto
 
 website:
-  title: "Training"
+  title: "Data journalism training"
   navbar:
+    background: "#222222"
     left:
-      - href: index.qmd
-        text: Home
-      - href: scraping-cards
-        text: Scraping cards
+      - text: Home
+        href: index.qmd
+      - text: Lessons
+        menu:
+          - text: Scraping from cards and dashboards
+            href: lessons/scraping-cards/index.qmd
 
 format:
   html:
-    theme: cosmo
+    theme: [default, style.scss]
+    linkcolor: "#36a7e9"
     css: styles.css
     toc: true

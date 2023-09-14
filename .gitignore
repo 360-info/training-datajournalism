@@ -1,6 +1,10 @@
+.DS_Store
+
 /.quarto/
 
-scraping-cards/data
-scraping-cards/vic-stats.zip
+# intermediary data
+lessons/scraping-cards/data
+lessons/scraping-cards/vic-stats.zip
+lessons/scraping-cards/suburbs.yml
 
 _site

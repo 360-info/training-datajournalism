@@ -1,0 +1,197 @@
+---
+title: "Scraping cards and dashboards"
+resources: suburbs.yml
+listing:
+  id: suburbs
+  contents: ["suburbs.yml"]
+  sort: ["name"]
+  filter-ui: true
+  type: grid
+  page-size: 10000
+---
+
+For this demo, we've set up what looks like a state government dashboard, with some statistics for each suburb in Melbourne pulled from the [Australian Bureau of Statistics](https://www.abs.gov.au). Each card has a number of relevant pieces of information.
+
+How would we go about extracting the info from these cards into Google Sheets? If it was a `<table>`, we could just use the `importhtml()` function to get the whole thing in one go.
+
+We can't do that this time—it isn't a table.
+
+:::{.callout-note collapse="true"}
+## Recreating this exercise
+
+I've cheated and created this listing from a spreadsheet myself—but it mimics the sorts of listings you'll see on product listings and dashboards all over the internet. If you're interested, the code here shows I collected and transformed ABS spreadsheets to make this exercise.
+
+Step 1: Downloading Census DataPacks
+
+```{r}
+#| label: download-census-data
+#| code-fold: true
+#| output: false
+
+library(tidyverse)
+library(readxl)
+library(scales)
+library(yaml)
+library(here)
+
+zip_path <- here("lessons", "scraping-cards", "vic-stats.zip")
+zip_url <- paste0(
+  "https://www.abs.gov.au/",
+  "census/find-census-data/datapacks/download/",
+  "2021_GCP_SAL_for_VIC_short-header.zip")
+download.file(zip_url, zip_path)
+unzip(zip_path, exdir = here("lessons", "scraping-cards", "data"))
+file.rename(
+  here("lessons", "scraping-cards", "data", "2021 Census GCP Suburbs and Localities for VIC"),
+  here("lessons", "scraping-cards", "data", "Responses"))
+```
+
+Step 2: Loading Census tables and tidy them up
+
+```{r}
+#| label: select-cols
+#| code-fold: true
+#| output: false
+
+# suburb codes and names
+here("lessons", "scraping-cards", "data", "Metadata",
+  "2021Census_geog_desc_1st_2nd_3rd_release.xlsx") |>
+  read_excel(sheet = "2021_ASGS_Non_ABS_Structures") |>
+  filter(ASGS_Structure == "SAL") |>
+  select(Code = Census_Code_2021, Name = Census_Name_2021) ->
+suburb_map
+
+# total population
+here("lessons", "scraping-cards", "data", "Responses", "2021Census_G01_VIC_SAL.csv") |>
+  read_csv(col_select = c(SAL_CODE_2021, Tot_P_P)) |>
+  mutate(`Total population` = as.integer(Tot_P_P)) |>
+  select(SAL_CODE_2021, `Total population`) ->
+population
+
+# income and rent (format as currencies)
+here("lessons", "scraping-cards", "data", "Responses", "2021Census_G02_VIC_SAL.csv") |>
+  read_csv(col_select =
+    c(SAL_CODE_2021, Median_rent_weekly, Median_tot_fam_inc_weekly)) |>
+  mutate(
+    Median_rent_weekly = label_dollar(accuracy = 1)(Median_rent_weekly),
+    Median_tot_fam_inc_weekly =
+      label_dollar(accuracy = 1)(Median_tot_fam_inc_weekly)) |>
+  rename(
+    `Median weekly rent` = Median_rent_weekly,
+    `Median weekly family income` = Median_tot_fam_inc_weekly) ->
+income_and_rent
+
+# commuting:
+# we just want the most popular commute method for each area,
+# which i'll encode as emoji
+here("lessons", "scraping-cards", "data", "Responses", "2021Census_G62_VIC_SAL.csv") |>
+  read_csv(
+    col_types = cols(SAL_CODE_2021 = col_character(), .default = col_integer()),
+    col_select = c(SAL_CODE_2021, ends_with("_P"))) |>
+  select(SAL_CODE_2021, matches("One_method"), matches("Two_methods"),
+    matches("Three_meth"), -matches("Tot")) |>
+  pivot_longer(-SAL_CODE_2021, names_to = "method", values_to = "count") |>
+  filter(count > 0) |>
+  group_by(SAL_CODE_2021) |>
+  slice_max(count, n = 1) |>
+  ungroup() |>
+  mutate(
+    "Most popular commute method" = str_replace_all(method, c(
+      "Train" = "🚂 Train",
+      "Trn" = "🚂 Train",
+      "Bus" = "🚌 Bus",
+      "Ferry" = "⛴️ Ferry",
+      "Car_as_driver" = "🚗 Driving",
+      "Car_as_drvr" = "🚗 Driving",
+      "Car_as_passenger" = "🚗 Passenger",
+      "Car_as_pass" = "🚗 Passenger",
+      "Truck" = "🚚 Truck",
+      "Motorbike_scootr" = "🛵 Motorbike or scooter",
+      "Other" = "❓ Other",
+      "Walked_only" = "🚶 Walk",
+      "_P" = "",
+      "Tr_2_oth_meth" = "🚂 Train and two other methods",
+      "Othr_three_meth" = "❓ Three other methods",
+      "One_method" = "",
+      "Two_methods" = "",
+      "Three_meth" = "",
+      "_" = " "))) |>
+  select(-method, -count) ->
+commuting_mostpopular
+```
+
+Step 3: Joining the tidied tables and outputting them as YAML (in order to make the listing below)
+
+```{r}
+#| label: join-datasets
+#| code-fold: true
+#| output: false
+
+
+# join and write out to yaml (so we can make a listing)
+population |>
+  left_join(income_and_rent, join_by(SAL_CODE_2021)) |>
+  left_join(commuting_mostpopular, join_by(SAL_CODE_2021)) |>
+  left_join(suburb_map, join_by(SAL_CODE_2021 == Code)) |>
+  select(Name, Code = SAL_CODE_2021, everything()) |>
+  mutate(`Total population` = as.integer(`Total population`)) |>
+  rename(title = Name) |>
+  replace_na(list(`Most popular commute method` = "")) |>
+  filter(`Total population` > 0) ->
+joined
+
+write_yaml(joined, here("lessons", "scraping-cards", "suburbs.yml"), column.major = FALSE)
+```
+:::
+
+::::{.callout-tip collapse="true"}
+## Solution
+
+We can use Google Sheets' more general `importxml()` function to get information that is in all sorts of structures—not just tables!
+
+The `importxml()` function takes a page address too, but the second thing we have to tell it is called an `XPath`. An `XPath` is a kind of address for looking up content on a web page.
+
+For example, to extract the title from each of the cards below, we would write the following:
+
+```
+=importxml(
+  "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
+  "div[@class="card"]/h5")
+
+```
+
+The first part is the URL of this page; the second tells the scraper to look for fifth-level headings (`h5`) inside `div` elements with the class `card`. In other words, the heading from each card.
+
+:::{.callout-note collapse="true"}
+## Wait, what's a `div`? And a `class`?
+
+A `div` is a generic building block of a web page, used to group bits of content together. On this page, each card below is a `div`.
+
+Elements on web pages can have a unique `id`, as well as one or more `class`es to help describe them. The cards on this page have the class `card`, and the pieces of information on each card have a class named for the data (its 'column', if this were a spreadsheet).
+
+Every web page is arranged differently!
+:::
+
+To get the income, we would use:
+
+```
+=importxml(
+  "https://360-info.github.io/training-datajournalism/lessons/scraping-cards",
+  "div[@class="card"]/td[@class="Median weekly rent"]")
+```
+
+This is pretty similar, but instead of looking for headings inside cards, we're looking for table cells (`td`) that have the class `Median weekly rent` inside `div` elements that have the class `card`. That's because each card on this page has a little table inside it.
+
+Learning how to write XPath can take time, and it involves learning about web pages are strcutured. But this demo shows you the power you have with common tools to extract data–even from places where the authors haven't made it easy to access!
+
+If you'd like to learn more, here are some resources:
+
+- [Mozilla Development Network: Getting Started with HTML](https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Getting_started)
+- [W3C: XPath](https://www.w3schools.com/xml/xpath_intro.asp)
+
+::::
+
+::::{.column-page}
+:::{#suburbs}
+:::
+::::
