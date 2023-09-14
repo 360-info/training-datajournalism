@@ -10,7 +10,7 @@ listing:
   page-size: 10000
 ---
 
-For this demo, we've set up what looks like a state government dashboard, with some statistics for each suburb in Melbourne pulled from the [Australian Bureau of Statistics](https://www.abs.gov.au). Each card has a number of relevant pieces of information.
+For this demo, we've set up what looks like a state government dashboard, with some statistics for ~~each suburb~~ the 100 most populous suburbs in Melbourne pulled from the [Australian Bureau of Statistics](https://www.abs.gov.au). Each card has a number of relevant pieces of information.
 
 How would we go about extracting the info from these cards into Google Sheets? If it was a `<table>`, we could just use the `importhtml()` function to get the whole thing in one go.
 
@@ -128,7 +128,7 @@ Step 3: Joining the tidied tables and outputting them as YAML (in order to make 
 #| output: false
 
 
-# join and write out to yaml (so we can make a listing)
+# join and write out biggest 100 suburbs to yaml (so we can make a listing)
 population |>
   left_join(income_and_rent, join_by(SAL_CODE_2021)) |>
   left_join(commuting_mostpopular, join_by(SAL_CODE_2021)) |>
@@ -137,7 +137,7 @@ population |>
   mutate(`Total population` = as.integer(`Total population`)) |>
   rename(title = Name) |>
   replace_na(list(`Most popular commute method` = "")) |>
-  filter(`Total population` > 0) ->
+  slice_max(`Total population`, n = 100) ->
 joined
 
 write_yaml(joined, here("lessons", "scraping-cards", "suburbs.yml"), column.major = FALSE)
